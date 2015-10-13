@@ -1,0 +1,84 @@
+#!/usr/bin/php
+<?php
+
+error_reporting(0);
+if ($argc == 1) {
+    die("Usage: php a.php file disk\n");
+}
+
+if ($argc == 3) {
+    $file = $argv[1];
+    $disk = $argv[2];
+} else {
+    $file = 'php://stdin';
+    $disk = $argv[1];
+}
+
+$cpu_num = 0;
+$cpustat = array();
+
+$io_num  = 0;
+$iostat = array();
+
+if (!$fp = fopen($file, 'r')) {
+    die("file $file not exists\n");
+}
+
+while ($line = fgets($fp, 1024)) {
+    $parts = preg_split('/\s+/', rtrim($line));
+    //avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+    if ($parts[2] == 'cpu') {
+        $cpu_num++;
+        $cpustat['user']   += $parts[3];
+        $cpustat['nice']   += $parts[4];
+        $cpustat['system'] += $parts[5];
+        $cpustat['iowait'] += $parts[6];
+        //$cpustat['steal']  += $parts[7];
+        $cpustat['idle']   += $parts[8];
+    } else if ($parts[2] == $disk) {
+        // Device:     rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+        $io_num++;
+        $iostat['wrqm']    += $parts[4];
+        $iostat['rps']     += $parts[5];
+        $iostat['wps']     += $parts[6];
+        $iostat['rmbs']    += $parts[7];
+        $iostat['wmbs']    += $parts[8];
+        $iostat['avgrqsz'] += $parts[9];
+        $iostat['avgqusz'] += $parts[10];
+        $iostat['await']   += $parts[11];
+        // 老版本里没有这两列V
+        if (isset($parts[15])) {
+            $iostat['r_await'] += $parts[12];
+            $iostat['w_await'] += $parts[13];
+            $iostat['svctm']   += $parts[14];
+            $iostat['util']    += $parts[15];
+        } else {
+            $iostat['r_await'] += 0; 
+            $iostat['w_await'] += 0; 
+            $iostat['svctm']   += $parts[12];
+            $iostat['util']    += $parts[13];
+        }
+    }
+}
+fclose($fp);
+
+//print_r($iostat); echo "cpunum=$cpu_num -----------\n"; print_r($cpustat);
+printf("cpu\tcuser\tcsys\tiowait\tidle\t--r/s--\t--w/s--\trMB/s\twMB/s\tavgrqsz\tavgqusz\tawait\tr_aw\tw_aw\tsvctm\tutil\n");
+printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", 
+    ($cpustat['user']+$cpustat['system']+$cpustat['iowait'])/$cpu_num,
+    ($cpustat['user'])/$cpu_num,
+    ($cpustat['system'])/$cpu_num,
+    $cpustat['iowait']/$cpu_num,
+    $cpustat['idle']/$cpu_num,
+    $iostat['rps']/$io_num,
+    $iostat['wps']/$io_num,
+    $iostat['rmbs']/$io_num,
+    $iostat['wmbs']/$io_num,
+    $iostat['avgrqsz']/$io_num,
+    $iostat['avgqusz']/$io_num,
+    $iostat['await']/$io_num,
+    $iostat['r_await']/$io_num,
+    $iostat['w_await']/$io_num,
+    $iostat['svctm']/$io_num,
+    $iostat['util']/$io_num
+);

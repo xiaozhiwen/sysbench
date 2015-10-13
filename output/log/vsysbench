@@ -1,0 +1,17 @@
+#!/bin/bash
+
+cd $(dirname $0)
+
+printf "===================================================%10s %10s %10s %10s %10s %10s\n" TPS QPS MIN MAX AVG STD
+
+for i in `ls -1 sysbench*|grep -v .iostat`
+do
+        tps=$(awk -F'(' '/transactions:/{print int($2)}' $i)
+        qps=$(awk -F'(' '/read\/write requests/{print int($2)}' $i)
+        min=$(awk '/ min:/{print $NF}' $i)
+        max=$(awk '/ max:/{print $NF}' $i)
+        avg=$(awk '/ avg:/{print $NF}' $i)
+        s95=$(awk '/ percentile:/{print $NF}' $i)
+
+        printf "%-50s %10s %10s %10s %10s %10s %10s\n" $i $tps $qps $min $max $avg $s95
+done

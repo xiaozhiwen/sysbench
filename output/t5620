@@ -1,0 +1,35 @@
+#!/bin/bash
+
+cd $(dirname $0)
+export LD_LIBRARY_PATH=/home/users/xiaozhiwen/mysql5620/lib/mysql 
+
+HOST=127.0.0.1
+PORT=5620
+SIZE=10000000
+TIME=7200
+DB=tpce
+TABLES=10
+time=$(date +'%m%d_%H%M')
+
+name=$1
+
+if [ -z "$name" ]; then
+	name=prepare
+fi
+ 
+outfile="log/sysbench.${PORT}.${time}.${name}-${TIME}"
+exec 1>> $outfile
+
+sb="./bin/sysbench --mysql-host=$HOST --mysql-port=$PORT --mysql-user=tpce --mysql-password=tpce123 --mysql-db=$DB --oltp-tables-count=$TABLES --oltp-table-size=$SIZE --num-threads=32 --max-requests=100000000 --max-time=$TIME --report-interval=10 --test=./tests/db/oltp.lua" 
+
+#$sb prepare
+
+pid=$$
+ln -s /usr/bin/iostat log/iostat.$pid
+
+log/iostat.$pid -cxdmt 1 | grep -v '^avg-cpu\|^Device:\|^$' | awk '{if ($1~ /^[0-9][0-9]\/[0-9]/){d=$1" "$2}else if (/^ /){print d, "cpu", $0} else { print d, $0;}}' >"${outfile}.iostat" &
+
+$sb run 
+
+killall -9 iostat.$pid
+rm log/iostat.$pid
