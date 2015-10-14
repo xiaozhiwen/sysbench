@@ -27,6 +27,8 @@ sb="./bin/sysbench --mysql-host=$HOST --mysql-port=$PORT --mysql-user=tpce --mys
 pid=$$
 ln -s /usr/bin/iostat log/iostat.$pid
 
+trap "killall -9 iostat.$pid" 1 2 15
+
 log/iostat.$pid -cxdmt 1 | grep -v '^avg-cpu\|^Device:\|^$' | awk '{if ($1~ /^[0-9][0-9]\/[0-9]/){d=$1" "$2}else if (/^ /){print d, "cpu", $0} else { print d, $0;}}' >"${outfile}.iostat" &
 
 $sb run 
