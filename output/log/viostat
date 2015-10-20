@@ -38,6 +38,7 @@ while ($line = fgets($fp, 1024)) {
     } else if ($parts[2] == $disk) {
         // Device:     rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
         $io_num++;
+        $iostat['rrqm']    += $parts[3];
         $iostat['wrqm']    += $parts[4];
         $iostat['rps']     += $parts[5];
         $iostat['wps']     += $parts[6];
@@ -62,14 +63,15 @@ while ($line = fgets($fp, 1024)) {
 }
 fclose($fp);
 
-//print_r($iostat); echo "cpunum=$cpu_num -----------\n"; print_r($cpustat);
-printf("cpu\tcuser\tcsys\tiowait\tidle\t--r/s--\t--w/s--\trMB/s\twMB/s\tavgrqsz\tavgqusz\tawait\tr_aw\tw_aw\tsvctm\tutil\n");
-printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", 
+printf("cpu\tcuser\tcsys\tiowait\tidle\t-rrqm-\t-wrqm-\t--r/s--\t--w/s--\trMB/s\twMB/s\tavgrqsz\tavgqusz\tawait\tr_aw\tw_aw\tsvctm\tutil\n");
+printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%5.2f\t%5.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", 
     ($cpustat['user']+$cpustat['system']+$cpustat['iowait'])/$cpu_num,
     ($cpustat['user'])/$cpu_num,
     ($cpustat['system'])/$cpu_num,
     $cpustat['iowait']/$cpu_num,
     $cpustat['idle']/$cpu_num,
+    $iostat['rrqm']/$io_num,
+    $iostat['wrqm']/$io_num,
     $iostat['rps']/$io_num,
     $iostat['wps']/$io_num,
     $iostat['rmbs']/$io_num,
